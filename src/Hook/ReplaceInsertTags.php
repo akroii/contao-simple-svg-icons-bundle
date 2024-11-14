@@ -15,8 +15,6 @@ use Contao\ImagineSvg\Imagine;
 use Contao\ImagineSvg\RelativeBoxInterface;
 use Contao\ImagineSvg\UndefinedBoxInterface;
 use Contao\Validator;
-use Contao\System;
-use Contao\StringUtil;
 use Imagine\Image\Box;
 use Slashworks\ContaoSimpleSvgIconsBundle\SimpleSvgIcons;
 
@@ -47,7 +45,7 @@ class ReplaceInsertTags
         if (strpos($tagParts[1], '?') !== false) {
             $chunks = explode('?', urldecode($tagParts[1]), 2);
             $svgId = $chunks[0];
-            $strSource = StringUtil::decodeEntities($chunks[1]);
+            $strSource = \StringUtil::decodeEntities($chunks[1]);
             $strSource = str_replace('[&]', '&', $strSource);
             $tempParams = explode('&', $strSource);
 
@@ -144,9 +142,7 @@ class ReplaceInsertTags
         }
 
         // The file does not exist.
-        $rootDir = System::getContainer()->getParameter('kernel.project_dir');
-
-        if (!file_exists($rootDir . '/' . $svgFile->path)) {
+        if (!file_exists(TL_ROOT . '/' . $svgFile->path)) {
             return false;
         }
 
@@ -154,16 +150,16 @@ class ReplaceInsertTags
         if ($svgFile->extension !== 'svg') {
             return false;
         }
-
         $customId = $params['id'] ?? NULL;
+        $customClass = $params['class'] ?? NULL;
         $cssClass = 'svg-inline';
-        if (!empty($params['class'])) {
+        if ($customClass) {
             $cssClass .= ' ' . $params['class'];
         }
 
         $isResizable = true;
-        $width = $params['width'] ?? '';
-        $height = $params['height'] ?? '';
+        $width = $params['width'] ?? NULL;
+        $height = $params['height'] ?? NULL;
         $ratio = null;
 
         $imagine = new Imagine();
@@ -180,11 +176,11 @@ class ReplaceInsertTags
             $resizeBox = null;
 
             if ($width && $height) {
-                $resizeBox = new Box((int) $width, (int) $height);
+                $resizeBox = new Box($width, $height);
             } else if ($width && !$height) {
-                $resizeBox = new Box((int) $width, (int) $width * $ratio);
+                $resizeBox = new Box($width, $width * $ratio);
             } else if (!$width && $height) {
-                $resizeBox = new Box((int) $height / $ratio, (int) $height);
+                $resizeBox = new Box($height / $ratio, $height);
             }
 
             $imagineSvg->resize($resizeBox);
@@ -209,7 +205,7 @@ class ReplaceInsertTags
             $xmlAttributes->addAttribute('class', $cssClass);
         }
 
-        $svgContent = preg_replace("/<\\?xml.*\\?>/",'',$svgXml->asXML(),1);
+        $svgContent = $svgXml->asXML();
 
         return $svgContent;
     }
